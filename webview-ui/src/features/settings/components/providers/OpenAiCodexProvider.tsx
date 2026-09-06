@@ -37,7 +37,6 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 		refreshOpenAiCodexUsage,
 	} = useSettingsStore()
 	const navigateToSettings = useAppStore((state) => state.navigateToSettings)
-	const [isAuthenticating, setIsAuthenticating] = useState(false)
 	const [authError, setAuthError] = useState<string>()
 	const lazyRefreshRequested = useRef(false)
 
@@ -59,17 +58,6 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 		void refreshOpenAiCodexUsage(false)
 	}, [openAiCodexIsAuthenticated, openAiCodexUsage, refreshOpenAiCodexUsage])
 
-	const handleSignIn = async () => {
-		setAuthError(undefined)
-		setIsAuthenticating(true)
-		try {
-			await ModelsServiceClient.authenticateOpenAiCodex(EmptyRequest.create({}))
-		} catch (error) {
-			setAuthError(error instanceof Error ? error.message : "Browser sign-in did not complete")
-		} finally {
-			setIsAuthenticating(false)
-		}
-	}
 
 	const handleSignOut = async () => {
 		setAuthError(undefined)
@@ -104,8 +92,6 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 				authError={authError}
 				email={openAiCodexEmail}
 				isAuthenticated={openAiCodexIsAuthenticated}
-				isAuthenticating={isAuthenticating}
-				onSignIn={() => void handleSignIn()}
 				onSignOut={() => void handleSignOut()}
 				planType={openAiCodexUsage?.planType}
 			/>

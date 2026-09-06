@@ -198,8 +198,8 @@ export class ModelsServiceClient extends ProtoBusClient {
 	static async updateApiConfigurationPartial(request: proto.dirac.UpdateApiConfigurationPartialRequest): Promise<proto.dirac.Empty> {
 		return this.makeUnaryRequest("updateApiConfigurationPartial", request, proto.dirac.UpdateApiConfigurationPartialRequest.toJSON, proto.dirac.Empty.fromJSON)
 	}
-	static async authenticateOpenAiCodex(request: proto.dirac.EmptyRequest): Promise<proto.dirac.Empty> {
-		return this.makeUnaryRequest("authenticateOpenAiCodex", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.Empty.fromJSON)
+	static authenticateOpenAiCodex(request: proto.dirac.OpenAiCodexAuthRequest, callbacks: Callbacks<proto.dirac.OpenAiCodexAuthEvent>): ()=>void {
+		return this.makeStreamingRequest("authenticateOpenAiCodex", request, proto.dirac.OpenAiCodexAuthRequest.toJSON, proto.dirac.OpenAiCodexAuthEvent.fromJSON, callbacks)
 	}
 	static async signOutOpenAiCodex(request: proto.dirac.EmptyRequest): Promise<proto.dirac.Empty> {
 		return this.makeUnaryRequest("signOutOpenAiCodex", request, proto.dirac.EmptyRequest.toJSON, proto.dirac.Empty.fromJSON)

@@ -97,8 +97,6 @@ interface UseSettingsActionsProps {
 	setObjectEditor: (state: ObjectEditorState | null) => void
 	setIsWaitingForCodexAuth: (value: boolean) => void
 	setIsWaitingForGithubAuth: (value: boolean) => void
-	setCodexAuthError: (error: string | null) => void
-	setCodexAuthUrl: (url: string | null) => void
 	setGithubAuthData: (data: any) => void
 	setIsBedrockCustomFlow: (value: boolean) => void
 	setIsConfiguringBedrock: (value: boolean) => void
@@ -167,8 +165,6 @@ export function useSettingsActions({
 	setObjectEditor,
 	setIsWaitingForCodexAuth,
 	setIsWaitingForGithubAuth,
-	setCodexAuthError,
-	setCodexAuthUrl,
 	setGithubAuthData,
 	setIsBedrockCustomFlow,
 	setIsConfiguringBedrock,
@@ -181,7 +177,6 @@ export function useSettingsActions({
 	availableTools,
 	setToolToggles,
 }: UseSettingsActionsProps) {
-	const cancelCodexAuthWaitRef = useRef<(() => void) | null>(null)
 	const githubAuthAbortControllerRef = useRef<AbortController | null>(null)
 
 	const commitSettings = useCallback(
@@ -230,9 +225,9 @@ export function useSettingsActions({
 			const settingsPatch =
 				mode === "act"
 					? {
-							actModeReasoningEffort: effort,
-							...(!separateModels ? { planModeReasoningEffort: effort } : {}),
-						}
+						actModeReasoningEffort: effort,
+						...(!separateModels ? { planModeReasoningEffort: effort } : {}),
+					}
 					: { planModeReasoningEffort: effort }
 			await commitSettings(settingsPatch)
 			if (mode === "act") {
@@ -245,43 +240,16 @@ export function useSettingsActions({
 		[separateModels, commitSettings, setActReasoningEffort, setPlanReasoningEffort],
 	)
 
-	const startCodexAuth = useCallback(async () => {
-		try {
-			setIsWaitingForCodexAuth(true)
-			setCodexAuthError(null)
-			const authUrl = openAiCodexOAuthManager.startAuthorizationFlow()
-			setCodexAuthUrl(authUrl)
-			await openExternal(authUrl)
-			const completed = await Promise.race([
-				openAiCodexOAuthManager.waitForCallback().then(() => true),
-				new Promise<false>((resolve) => {
-					cancelCodexAuthWaitRef.current = () => resolve(false)
-				}),
-			])
-			cancelCodexAuthWaitRef.current = null
-			if (!completed) return
-			openAiCodexUsageService.clear()
-			await applyProviderConfig({ providerId: "openai-codex", controller })
-			setProvider("openai-codex")
-			refreshModelIds()
-			setIsWaitingForCodexAuth(false)
-			setCodexAuthUrl(null)
-		} catch (error) {
-			cancelCodexAuthWaitRef.current = null
-			openAiCodexOAuthManager.cancelAuthorizationFlow()
-			setCodexAuthError(error instanceof Error ? error.message : String(error))
-			setIsWaitingForCodexAuth(false)
-			setCodexAuthUrl(null)
-		}
-	}, [controller, setIsWaitingForCodexAuth, setCodexAuthError, setCodexAuthUrl, setProvider, refreshModelIds])
+	const startCodexAuth = useCallback(() => {
+		setIsWaitingForCodexAuth(true)
+	}, [setIsWaitingForCodexAuth])
 
-	const cancelCodexAuth = useCallback(() => {
-		openAiCodexOAuthManager.cancelAuthorizationFlow()
-		cancelCodexAuthWaitRef.current?.()
-		cancelCodexAuthWaitRef.current = null
+	const completeCodexAuth = useCallback(async () => {
+		await applyProviderConfig({ providerId: "openai-codex", controller })
+		setProvider("openai-codex")
+		refreshModelIds()
 		setIsWaitingForCodexAuth(false)
-		setCodexAuthUrl(null)
-	}, [setCodexAuthUrl, setIsWaitingForCodexAuth])
+	}, [controller, setProvider, refreshModelIds, setIsWaitingForCodexAuth])
 
 	const startGithubAuth = useCallback(async () => {
 		const abortController = new AbortController()
@@ -943,7 +911,7 @@ export function useSettingsActions({
 		handleLanguageSelect,
 		startCodexAuth,
 		startGithubAuth,
-		cancelCodexAuth,
+		completeCodexAuth,
 		cancelGithubAuth,
 		navigateItems,
 		toggleFeature,

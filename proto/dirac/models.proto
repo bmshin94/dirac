@@ -38,7 +38,7 @@ service ModelsService {
   // Updates API configuration with partial values (only updates fields that are explicitly set)
   rpc updateApiConfigurationPartial(UpdateApiConfigurationPartialRequest) returns (Empty);
   // Authenticates with OpenAI Codex (ChatGPT subscription)
-  rpc authenticateOpenAiCodex(EmptyRequest) returns (Empty);
+  rpc authenticateOpenAiCodex(OpenAiCodexAuthRequest) returns (stream OpenAiCodexAuthEvent);
   // Signs out from OpenAI Codex
   rpc signOutOpenAiCodex(EmptyRequest) returns (Empty);
   // Silently refreshes and returns ChatGPT subscription usage.
@@ -53,6 +53,21 @@ service ModelsService {
   rpc refreshVercelAiGatewayModelsRpc(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
   // Lazily fetches upstream endpoints for one selected OpenRouter model.
   rpc getOpenRouterEndpoints(OpenRouterEndpointsRequest) returns (OpenRouterEndpointsResponse);
+}
+
+enum OpenAiCodexAuthMethod {
+  OPEN_AI_CODEX_AUTH_METHOD_BROWSER = 0;
+  OPEN_AI_CODEX_AUTH_METHOD_DEVICE = 1;
+}
+
+message OpenAiCodexAuthRequest {
+  OpenAiCodexAuthMethod method = 1;
+}
+
+message OpenAiCodexAuthEvent {
+  string url = 1;
+  optional string user_code = 2;
+  bool completed = 3;
 }
 
 message OpenAiCodexUsageWindow {

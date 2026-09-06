@@ -16,7 +16,7 @@ import { Logger } from "@/shared/services/Logger"
 import { TerminalColorMode, terminalColorMode, theme } from "../../constants/theme"
 import { useStdinContext } from "../../context/StdinContext"
 import { useTerminalSize } from "../../hooks/useTerminalSize"
-import { copyToClipboardNative } from "../../utils/clipboard"
+import { OpenAiCodexAuthView } from "../OpenAiCodexAuthView"
 import { shouldIgnoreTerminalInput } from "../../utils/input"
 import { usesOpenRouterModels } from "../../utils/openrouter-models"
 import type { ObjectEditorState } from "../ConfigViewComponents"
@@ -30,18 +30,18 @@ import { SettingsHomeView } from "./SettingsHomeView"
 import { SettingsListView } from "./SettingsListView"
 import { SettingsSearchView } from "./SettingsSearchView"
 import { commitInteractiveSetting, persistInteractiveSettingWithRollback } from "./settingsTransaction"
-import { AuthErrorPage, CodexAuthPage, GithubAuthPage } from "./subpages/AuthPages"
+import { GithubAuthPage } from "./subpages/AuthPages"
 import { ApiKeyInputPage, EditValuePage, ObjectEditorPage } from "./subpages/EditPages"
 import { OpenRouterRoutingPage } from "./subpages/OpenRouterRoutingPage"
 import { LanguagePickerPage, ModelPickerPage, ProviderPickerPage, UtilityModelPresetPickerPage } from "./subpages/PickerPages"
 import { BedrockCustomFlowPage, BedrockSetupPage } from "./subpages/SetupPages"
 import {
-    SettingsNavigationDirection,
-    type ListItem,
-    type SettingsPanelContentProps,
-    type SettingsSearchResult,
-    SettingsItemType,
-    SettingsTab,
+	SettingsNavigationDirection,
+	type ListItem,
+	type SettingsPanelContentProps,
+	type SettingsSearchResult,
+	SettingsItemType,
+	SettingsTab,
 } from "./types"
 import { UserApprovedCommandsPage } from "./UserApprovedCommandsPage"
 import { normalizeReasoningEffort } from "./utils"
@@ -78,9 +78,6 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 	const [isWaitingForCodexAuth, setIsWaitingForCodexAuth] = useState(false)
 	const [isWaitingForGithubAuth, setIsWaitingForGithubAuth] = useState(false)
 	const [githubAuthData, setGithubAuthData] = useState<any>(null)
-	const [codexAuthUrl, setCodexAuthUrl] = useState<string | null>(null)
-	const [copied, setCopied] = useState(false)
-	const [codexAuthError, setCodexAuthError] = useState<string | null>(null)
 	const [apiKeyValue, setApiKeyValue] = useState("")
 	const [editValue, setEditValue] = useState("")
 	const [isBedrockCustomFlow, setIsBedrockCustomFlow] = useState(false)
@@ -318,7 +315,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		handleBedrockCustomFlowComplete,
 		handleLanguageSelect,
 		handleUtilityModelPresetSelect,
-		cancelCodexAuth,
+		completeCodexAuth,
 		cancelGithubAuth,
 		navigateItems,
 	} = useSettingsActions({
@@ -376,8 +373,6 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		setObjectEditor,
 		setIsWaitingForCodexAuth,
 		setIsWaitingForGithubAuth,
-		setCodexAuthError,
-		setCodexAuthUrl,
 		setGithubAuthData,
 		setIsBedrockCustomFlow,
 		setIsConfiguringBedrock,
@@ -502,23 +497,9 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				if (key.escape) setIsPickingLanguage(false)
 				return
 			}
-			if (isWaitingForCodexAuth) {
-				if (input === "c" && codexAuthUrl) {
-					if (copyToClipboardNative(codexAuthUrl)) {
-						setCopied(true)
-						setTimeout(() => setCopied(false), 2000)
-					}
-					return
-				}
-				if (key.escape) cancelCodexAuth()
-				return
-			}
+			if (isWaitingForCodexAuth) return
 			if (isWaitingForGithubAuth) {
 				if (key.escape) cancelGithubAuth()
-				return
-			}
-			if (codexAuthError) {
-				setCodexAuthError(null)
 				return
 			}
 			if (isBedrockCustomFlow) return
@@ -676,9 +657,10 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				/>
 			)
 		}
-		if (isWaitingForCodexAuth) return <CodexAuthPage codexAuthUrl={codexAuthUrl} copied={copied} />
+		if (isWaitingForCodexAuth) return (
+			<OpenAiCodexAuthView onCancel={() => setIsWaitingForCodexAuth(false)} onComplete={completeCodexAuth} />
+		)
 		if (isWaitingForGithubAuth && githubAuthData) return <GithubAuthPage githubAuthData={githubAuthData} />
-		if (codexAuthError) return <AuthErrorPage error={codexAuthError} />
 		if (isPickingModel && pickingModelKey) {
 			const label = pickingModelKey === "actModelId" ? "Model ID (Act)" : "Model ID (Plan)"
 			return (
@@ -759,7 +741,6 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		isEnteringApiKey ||
 		isConfiguringBedrock ||
 		isWaitingForCodexAuth ||
-		!!codexAuthError ||
 		isBedrockCustomFlow ||
 		isWaitingForGithubAuth ||
 		isEditing ||
