@@ -1113,6 +1113,17 @@ function print_success() {
     echo "--------------------------------------------------"
 }
 
+function restore_dry_run() {
+    git restore --worktree -- "${MUTATED_FILES[@]}"
+    # Dry runs never change the index, so it remains the source of tracking state.
+    if git ls-files --error-unmatch "$BUNDLED_RELEASE_NOTES_FILE" >/dev/null 2>&1; then
+        git restore --worktree -- "$BUNDLED_RELEASE_NOTES_FILE"
+    else
+        rm -f "$BUNDLED_RELEASE_NOTES_FILE"
+    fi
+    rm -rf "$STATE_DIR"
+}
+
 function run_dry_run() {
     assert_clean_worktree
     local old_version
@@ -1130,18 +1141,6 @@ function run_dry_run() {
     ensure_curated_release_notes_ready
     create_manifest
 
-    local bundled_notes_was_tracked=false
-    if git ls-files --error-unmatch "$BUNDLED_RELEASE_NOTES_FILE" >/dev/null 2>&1; then
-        bundled_notes_was_tracked=true
-    fi
-
-    function restore_dry_run() {
-        git checkout -- "${MUTATED_FILES[@]}" "$BUNDLED_RELEASE_NOTES_FILE" 2>/dev/null || true
-        if [ "$bundled_notes_was_tracked" = false ]; then
-            rm -f "$BUNDLED_RELEASE_NOTES_FILE"
-        fi
-        rm -rf "$STATE_DIR"
-    }
     trap restore_dry_run EXIT
 
     write_versions
@@ -1149,6 +1148,8 @@ function run_dry_run() {
     ensure_release_notes
     ensure_vsix
     ensure_npm_tarball
+    trap - EXIT
+    restore_dry_run
     log_info "Dry run complete for ${RELEASE_TAG}. Nothing was committed, tagged, pushed, or published."
 }
 
