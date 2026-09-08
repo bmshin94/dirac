@@ -21,11 +21,44 @@ const TELEMETRY_SECRET_PATTERNS: { pattern: RegExp; replacement: string }[] = [
 ]
 const MAX_TELEMETRY_STRING_LENGTH = 2000
 
-const SENSITIVE_KEY_PATTERN =
-	/(?:api[-_]?key|authorization|cookie|password|passwd|secret|token|credential|private[-_]?key)/i
+// Only exact, explicitly enumerated property names are redacted. Telemetry contains
+// legitimate metric names such as "tokensIn", so substring and wildcard matching
+// must not be used here.
+const SENSITIVE_TELEMETRY_PROPERTY_KEYS = new Set([
+	"api-key",
+	"api_key",
+	"apikey",
+	"authorization",
+	"cookie",
+	"cookies",
+	"password",
+	"passwd",
+	"secret",
+	"client-secret",
+	"client_secret",
+	"clientsecret",
+	"token",
+	"access-token",
+	"access_token",
+	"accesstoken",
+	"refresh-token",
+	"refresh_token",
+	"refreshtoken",
+	"auth-token",
+	"auth_token",
+	"authtoken",
+	"id-token",
+	"id_token",
+	"idtoken",
+	"credential",
+	"credentials",
+	"private-key",
+	"private_key",
+	"privatekey",
+])
 
 export function isSensitiveKey(key: string): boolean {
-	return SENSITIVE_KEY_PATTERN.test(key)
+	return SENSITIVE_TELEMETRY_PROPERTY_KEYS.has(key.toLowerCase())
 }
 
 export function scrubTelemetryProperties(value: unknown): unknown {

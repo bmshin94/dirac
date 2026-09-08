@@ -57,6 +57,26 @@ describe("DiracTelemetryProvider secret scrubbing (FB-39)", () => {
 				"modelId",
 				"toolName",
 				"duration",
+				"tokensIn",
+				"tokensOut",
+				"inputTokens",
+				"outputTokens",
+				"reasoningTokens",
+				"cacheReadTokens",
+				"cacheWriteTokens",
+				"timeToFirstTokenMs",
+				"throughputTokensPerSec",
+				"promptTokens",
+				"currentTokens",
+				"tokenCount",
+				"tokenUsage",
+				"secretStatus",
+				"passwordReset",
+				"cookieEnabled",
+				"credentialType",
+				"authorizationMethod",
+				"apiKeyConfigured",
+				"privateKeyFormat",
 			]
 
 			for (const key of nonSensitiveKeys) {
@@ -84,6 +104,24 @@ describe("DiracTelemetryProvider secret scrubbing (FB-39)", () => {
 			assert.strictEqual(scrubbed.token, "[REDACTED]")
 			assert.strictEqual(scrubbed.authorization, "[REDACTED]")
 			assert.strictEqual(scrubbed.safeField, "safe value")
+		})
+
+		it("preserves token metrics and other non-denylisted properties", () => {
+			const properties = {
+				tokensIn: 101,
+				tokensOut: 102,
+				inputTokens: 103,
+				outputTokens: 104,
+				reasoningTokens: 105,
+				cacheReadTokens: 106,
+				cacheWriteTokens: 107,
+				timeToFirstTokenMs: 108,
+				throughputTokensPerSec: 109,
+				promptTokens: 110,
+				currentTokens: 111,
+			}
+
+			assert.deepStrictEqual(scrubTelemetryProperties(properties), properties)
 		})
 
 		it("redacts sensitive keys in deeply nested objects", () => {
